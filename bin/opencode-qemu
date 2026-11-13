@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# binfmt_misc interpreter for "*.ocqemu" files.
+# The kernel calls: opencode-qemu <path-to-binary> <arguments...>
+# OpenCode starts itself again for its server. That child also comes here.
+set -euo pipefail
+root=$(dirname "$(dirname "$(readlink -f -- "${BASH_SOURCE[0]}")")")
+qemu="$root/tools/qemu/usr/bin/qemu-x86_64"
+[[ -x "$qemu" ]] || { echo "Missing QEMU. Run: bash $root/setup.sh" >&2; exit 1; }
+# Upstream updates replace the binary with one that does not use QEMU.
+export OPENCODE_DISABLE_AUTOUPDATE=1
+# QEMU must emulate DFG compilation and then translate its output.
+export BUN_JSC_useDFGJIT="${BUN_JSC_useDFGJIT:-0}"
+# Periodic GC passes are expensive under emulation.
+export BUN_GC_TIMER_INTERVAL="${BUN_GC_TIMER_INTERVAL:-30000}"
+exec "$qemu" -cpu max "$@"
